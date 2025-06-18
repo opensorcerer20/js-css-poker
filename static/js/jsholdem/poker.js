@@ -8,7 +8,7 @@ var START_DATE;
 var NUM_ROUNDS;
 var STOP_AUTOPLAY = 0;
 var RUN_EM = 0;
-var STARTING_BANKROLL = 500;
+var STARTING_BANKROLL = 1000;
 var SMALL_BLIND;
 var BIG_BLIND;
 var BG_HILITE = 'gold';           // "#EFEF30",
@@ -702,7 +702,7 @@ function handle_end_of_round () {
         }
       }
       // @change
-      if (players[i].status != "FOLD") {
+      if (players[i].status != "FOLD" && players[i].status != "BUST") {
         if (board[4]) {
           write_player(i, 0, 1);
         } else {
@@ -771,9 +771,9 @@ function handle_end_of_round () {
   gui_write_game_response(html);
 
   gui_setup_fold_call_click(quit_text,
-                            continue_text,
+                            "DONT CLICK",
                             quit_func,
-                            continue_func);
+                            () => {});
 
   var elapsed_milliseconds = ((new Date()) - START_DATE);
   var elapsed_time = makeTimeString(elapsed_milliseconds);
@@ -845,7 +845,7 @@ function ready_for_next_card () {
   }
 
   // @change
-  let num_not_folded  = players.filter(player => player.status != "FOLD").length;
+  let num_not_folded  = players.filter(player => player.status != "FOLD" && player.status != "BUST").length;
 
   if (num_not_folded === 1) {
     handle_end_of_round();
