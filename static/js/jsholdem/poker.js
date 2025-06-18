@@ -771,9 +771,9 @@ function handle_end_of_round () {
   gui_write_game_response(html);
 
   gui_setup_fold_call_click(quit_text,
-                            "DONT CLICK",
+                            continue_text,
                             quit_func,
-                            () => {});
+                            continue_func);
 
   var elapsed_milliseconds = ((new Date()) - START_DATE);
   var elapsed_time = makeTimeString(elapsed_milliseconds);
