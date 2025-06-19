@@ -1066,6 +1066,7 @@ function write_player (n, hilite, show_cards, bet_type = "") {
   } else if (!has_money(n)) {
     bet_text = "ALL IN";
     bet_total = players[n].subtotal_bet + players[n].total_bet;
+    bet_subtotal = bet_total;
     if (n == 0) {
       HUMAN_GOES_ALL_IN = 1;
     }
@@ -1081,13 +1082,13 @@ function write_player (n, hilite, show_cards, bet_type = "") {
     //if (players[n].status == "FOLD") {
     //} else 
     if (bet_type == "small blind" || bet_type == "big blind") {
-      appendLog(`${players[n].name} posts ${bet_type} $${bet_subtotal}`);
+      appendLog(`${players[n].name} post ${bet_type} $${bet_subtotal}`);
     } else if (bet_type == "call") {
-      appendLog(`${players[n].name} checks/calls`);
+      appendLog(`${players[n].name} check/call`);
     } else if (bet_type == "all in") {
-      appendLog(`${players[n].name} goes all in`);
+      appendLog(`${players[n].name} all in`);
     } else {
-      appendLog(`${players[n].name} bets ${bet_text}`);
+      appendLog(`${players[n].name} bet $${bet_subtotal}`);
     }
   }
   gui_set_player_name(players[n].name, n);    // offset 1 on seat-index
