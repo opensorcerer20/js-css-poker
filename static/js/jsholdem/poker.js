@@ -207,7 +207,7 @@ function new_round () {
   button_index = get_next_player_position(button_index, 1);
   var i;
   for (i = 0; i < players.length; i++) {
-    write_player(i, 0, 0);
+    write_player(i, 0, 0, "blinds");
   }
 
   for (i = 0; i < board.length; i++) {
@@ -268,10 +268,10 @@ function blinds_and_deal () {
   }
   var small_blind = get_next_player_position(button_index, 1);
   the_bet_function(small_blind, SMALL_BLIND);
-  write_player(small_blind, 0, 0);
+  write_player(small_blind, 0, 0, "small blind");
   var big_blind = get_next_player_position(small_blind, 1);
   the_bet_function(big_blind, BIG_BLIND);
-  write_player(big_blind, 0, 0);
+  write_player(big_blind, 0, 0, "big blind");
   players[big_blind].status = "OPTION";
   current_bettor_index = get_next_player_position(big_blind, 1);
   deal_and_write_a();
@@ -502,10 +502,10 @@ function main () {
                     " size=+3>" + to_call +
                     "</font> more to call.</font></td></tr>";
       gui_write_game_response(message);
-      write_player(0, 1, 0);
+      write_player(0, 1, 0, "waiting");
       return;
     } else {
-      write_player(current_bettor_index, 1, 0);
+      write_player(current_bettor_index, 1, 0, "waiting");
       setTimeout(bet_from_bot, 777 * global_speed, current_bettor_index);
       return;
     }
@@ -683,15 +683,15 @@ function handle_end_of_round () {
         // function write_player(n, hilite, show_cards)
         // @change
         if (board[4]) {
-          write_player(i, 2, 1);
+          write_player(i, 2, 1, "end");
         } else {
-          write_player(i, 2, 0);
+          write_player(i, 2, 0, "end");
         }
       } else {
         if (board[4]) {
-          write_player(i, 1, 1);
+          write_player(i, 1, 1, "end");
         } else {
-          write_player(i, 1, 1);
+          write_player(i, 1, 1, "end");
         }
       }
     } else {
@@ -704,9 +704,9 @@ function handle_end_of_round () {
       // @change
       if (players[i].status != "FOLD" && players[i].status != "BUST") {
         if (board[4]) {
-          write_player(i, 0, 1);
+          write_player(i, 0, 1, "end");
         } else {
-          write_player(i, 0, 0);
+          write_player(i, 0, 0, "end");
         }
       }
     }
@@ -835,7 +835,7 @@ function ready_for_next_card () {
   if (!RUN_EM) {
     for (i = 0; i < players.length; i++) { // <-- UNROLL
       if (players[i].status != "BUST" && players[i].status != "FOLD") {
-        write_player(i, 0, show_cards);
+        write_player(i, 0, show_cards, "next card");
       }
     }
   }
@@ -927,7 +927,7 @@ function human_call () {
   players[0].status = "CALL";
   current_bettor_index = get_next_player_position(0, 1);
   the_bet_function(0, current_bet_amount - players[0].subtotal_bet);
-  write_player(0, 0, 0);
+  write_player(0, 0, 0, "call");
   main();
 }
 
@@ -939,7 +939,7 @@ function handle_human_bet (bet_amount) {
   if (is_ok_bet) {
     players[0].status = "CALL";
     current_bettor_index = get_next_player_position(0, 1);
-    write_player(0, 0, 0);
+    write_player(0, 0, 0, "bet");
     main();
     gui_hide_guick_raise();
   } else {
@@ -952,7 +952,7 @@ function human_fold () {
   // Clear the buttons - not able to call
   gui_hide_fold_call_click();
   current_bettor_index = get_next_player_position(0, 1);
-  write_player(0, 0, 0);
+  write_player(0, 0, 0, "fold");
   var current_pot_size = get_pot_size();
   gui_write_basic_general(current_pot_size);
   main();
@@ -961,33 +961,40 @@ function human_fold () {
 function bet_from_bot (x) {
   var b = 0;
   var n = current_bet_amount - players[x].subtotal_bet;
+  var bet_type;
   if (!board[0]) b = bot_get_preflop_bet();
   else b = bot_get_postflop_bet();
   if (b >= players[x].bankroll) { // ALL IN
     players[x].status = "";
+    bet_type = "all in"
   } else if (b < n) { // BET 2 SMALL
     b = 0;
     players[x].status = "FOLD";
+    bet_type = "fold";
   } else if (b == n) { // CALL
     players[x].status = "CALL";
+    bet_type = "call"
   } else if (b > n) {
     if (b - n < current_min_raise) { // RAISE 2 SMALL
       b = n;
       players[x].status = "CALL";
+      bet_type = "call"
     } else {
       players[x].status = ""; // RAISE
+      bet_type = "bet"
     }
   }
   if (the_bet_function(x, b) == 0) {
     players[x].status = "FOLD";
+    bet_type = "fold"
     the_bet_function(x, 0);
   }
-  write_player(current_bettor_index, 0, 0);
+  write_player(current_bettor_index, 0, 0, bet_type);
   current_bettor_index = get_next_player_position(current_bettor_index, 1);
   main();
 }
 
-function write_player (n, hilite, show_cards) {
+function write_player (n, hilite, show_cards, bet_type = "") {
   var carda = "";
   var cardb = "";
   var name_background_color = "";
@@ -1041,11 +1048,13 @@ function write_player (n, hilite, show_cards) {
     gui_place_dealer_button(n);
   }
   var bet_text = "TO BE OVERWRITTEN";
+  var bet_total = "";
   var allin = "Bet:";
+  var bet_subtotal = "";
 
   if (players[n].status == "FOLD") {
-    bet_text = "FOLDED (" +
-               (players[n].subtotal_bet + players[n].total_bet) + ")";
+    bet_text = "FOLDED";
+    bet_total = players[n].subtotal_bet + players[n].total_bet;
     if (n == 0) {
       HUMAN_GOES_ALL_IN = 0;
     }
@@ -1055,18 +1064,34 @@ function write_player (n, hilite, show_cards) {
       HUMAN_GOES_ALL_IN = 0;
     }
   } else if (!has_money(n)) {
-    bet_text = "ALL IN (" +
-               (players[n].subtotal_bet + players[n].total_bet) + ")";
+    bet_text = "ALL IN";
+    bet_total = players[n].subtotal_bet + players[n].total_bet;
     if (n == 0) {
       HUMAN_GOES_ALL_IN = 1;
     }
   } else {
-    bet_text = allin + "$" + players[n].subtotal_bet +
-               " (" + (players[n].subtotal_bet + players[n].total_bet) + ")";
+    bet_subtotal = players[n].subtotal_bet;
+    bet_text = allin + "$" + bet_subtotal;
+    bet_total = players[n].subtotal_bet + players[n].total_bet;
   }
 
+  // @todo i dont think fold should be announced here but the moment the player folds
+  if (players[n].status != "FOLD" && players[n].status != "BUSTED" && ["all in", "bet", "call", "small blind", "big blind"].indexOf(bet_type) > -1) {
+    //console.log('bet_type ' + bet_type);
+    //if (players[n].status == "FOLD") {
+    //} else 
+    if (bet_type == "small blind" || bet_type == "big blind") {
+      appendLog(`${players[n].name} posts ${bet_type} $${bet_subtotal}`);
+    } else if (bet_type == "call") {
+      appendLog(`${players[n].name} checks/calls`);
+    } else if (bet_type == "all in") {
+      appendLog(`${players[n].name} goes all in`);
+    } else {
+      appendLog(`${players[n].name} bets ${bet_text}`);
+    }
+  }
   gui_set_player_name(players[n].name, n);    // offset 1 on seat-index
-  gui_set_bet(bet_text, n);
+  gui_set_bet(bet_text + ` (${bet_total})`, n);
   gui_set_bankroll(players[n].bankroll, n);
   gui_set_player_cards(carda, cardb, n, show_folded);
 }
@@ -1150,7 +1175,7 @@ function change_name () {
     name = "Sue";
   }
   players[0].name = name;
-  write_player(0, 0, 0);
+  write_player(0, 0, 0, "change name");
   setLocalStorage("playername", name);
 }
 
@@ -1301,4 +1326,17 @@ function makeTimeString (milliseconds) {
   string = getTimeText(string, seconds, "second");
 
   return (string);
+}
+
+function clearLog() {
+  let log = document.getElementById("gamelog");
+  log.innerHTML = "";
+}
+
+function appendLog(message) {
+  let log = document.getElementById("gamelog");
+  const newLog = document.createElement("div");
+  newLog.textContent = message;
+  log.appendChild(newLog);
+  log.scrollTop = log.scrollHeight;
 }
